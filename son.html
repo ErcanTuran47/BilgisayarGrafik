@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebGL Ercan Turan</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+  </head>
+  <body>
+    <canvas id="glcanvas" width="640" height="480"></canvas>
+    <script>
+      function main() {
+        const canvas = document.querySelector("#glcanvas");
+        const gl = canvas.getContext("webgl");
+
+        // WebGL bağlamı kontrolü
+        if (!gl) {
+          console.error(
+            "WebGL bağlamı başlatılamadı. Tarayıcınız WebGL'i desteklemiyor."
+          );
+          return;
+        }
+
+        // Vertex shader kaynağı
+        const vsSource = `
+          attribute vec4 aVertexPosition;
+          attribute vec4 aVertexColor;
+          uniform mat4 uModelViewMatrix;
+          uniform mat4 uProjectionMatrix;
+          varying lowp vec4 vColor;
+          void main(void) {
+            gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+            vColor = aVertexColor;
+          }
+        `;
+
+        // Fragment shader kaynağı
+        const fsSource = `
+          varying lowp vec4 vColor;
+          void main(void) {
+            gl_FragColor = vColor;
+          }
+        `;
+
+        // Shader programını başlat
+        const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
+        const programInfo = {
+          program: shaderProgram,
+          attribLocations: {
+            vertexPosition: gl.getAttribLocation(
+              shaderProgram,
+              "aVertexPosition"
+            ),
+            vertexColor: gl.getAttribLocation(shaderProgram, "aVertexColor"),
+          },
+          uniformLocations: {
+            projectionMatrix: gl.getUniformLocation(
+              shaderProgram,
+              "uProjectionMatrix"
+            ),
+            modelViewMatrix: gl.getUniformLocation(
+              shaderProgram,
+              "uModelViewMatrix"
+            ),
+          },
+        };
+
+        // Bufferları başlat
+        const buffers = initBuffers(gl);
+
+        // Sahneyi çiz
+        drawScene(gl, programInfo, buffers);
+      }
+
+      // Shader programını başlatma fonksiyonu
+      function initShaderProgram(gl, vsSource, fsSource) {
+        const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
+        const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
+
+        const shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+
+        // Shader programı bağlantı kontrolü
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+          console.error(
+            "Shader programı başlatılamadı: " +
+              gl.getProgramInfoLog(shaderProgram)
+          );
+          return null;
+        }
+
+        return shaderProgram;
+      }
+
+      // Shader yükleme fonksiyonu
+      function loadShader(gl, type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+
+        // Shader derleme kontrolü
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          console.error("Shader derlenemedi: " + gl.getShaderInfoLog(shader));
+          gl.deleteShader(shader);
+          return null;
+        }
+
+        return shader;
+      }
+
+      // Bufferları başlatma fonksiyonu
+      function initBuffers(gl) {
+        // Pozisyon verileri
+        const positions = [
+          // E harfi
+          -0.9,
+          0.9,
+          0.0,
+          -0.9,
+          0.7,
+          0.0,
+          -0.9,
+          0.9,
+          0.0,
+          -0.7,
+          0.9,
+          0.0,
+          -0.9,
+          0.8,
+          0.0,
+          -0.8,
+          0.8,
+          0.0,
+          -0.9,
+          0.7,
+          0.0,
+          -0.7,
+          0.7,
+          0.0,
+
+          // R harfi
+          -0.6,
+          0.9,
+          0.0,
+          -0.6,
+          0.7,
+          0.0,
+          -0.6,
+          0.9,
+          0.0,
+          -0.5,
+          0.9,
+          0.0,
+          -0.5,
+          0.9,
+          0.0,
+          -0.5,
+          0.8,
+          0.0,
+          -0.6,
+          0.8,
+          0.0,
+          -0.5,
+          0.7,
+          0.0,
+
+          // C harfi
+          -0.4,
+          0.9,
+          0.0,
+          -0.4,
+          0.7,
+          0.0,
+          -0.4,
+          0.9,
+          0.0,
+          -0.3,
+          0.9,
+          0.0,
+          -0.4,
+          0.7,
+          0.0,
+          -0.3,
+          0.7,
+          0.0,
+
+          // A harfi
+          -0.2,
+          0.7,
+          0.0,
+          -0.15,
+          0.9,
+          0.0,
+          -0.15,
+          0.9,
+          0.0,
+          -0.1,
+          0.7,
+          0.0,
+          -0.175,
+          0.8,
+          0.0,
+          -0.125,
+          0.8,
+          0.0,
+
+          // N harfi
+          0.0,
+          0.7,
+          0.0,
+          0.0,
+          0.9,
+          0.0,
+          0.0,
+          0.9,
+          0.0,
+          0.1,
+          0.7,
+          0.0,
+          0.1,
+          0.7,
+          0.0,
+          0.1,
+          0.9,
+          0.0,
+
+          // Boşluk
+          0.15,
+          0.7,
+          0.0,
+          0.15,
+          0.7,
+          0.0,
+
+          // T harfi
+          0.2,
+          0.9,
+          0.0,
+          0.3,
+          0.9,
+          0.0,
+          0.25,
+          0.9,
+          0.0,
+          0.25,
+          0.7,
+          0.0,
+
+          // U harfi
+          0.4,
+          0.9,
+          0.0,
+          0.4,
+          0.7,
+          0.0,
+          0.4,
+          0.7,
+          0.0,
+          0.5,
+          0.7,
+          0.0,
+          0.5,
+          0.7,
+          0.0,
+          0.5,
+          0.9,
+          0.0,
+
+          // R harfi
+          0.6,
+          0.9,
+          0.0,
+          0.6,
+          0.7,
+          0.0,
+          0.6,
+          0.9,
+          0.0,
+          0.7,
+          0.9,
+          0.0,
+          0.7,
+          0.9,
+          0.0,
+          0.7,
+          0.8,
+          0.0,
+          0.6,
+          0.8,
+          0.0,
+          0.7,
+          0.7,
+          0.0,
+
+          // A harfi
+          0.8,
+          0.7,
+          0.0,
+          0.85,
+          0.9,
+          0.0,
+          0.85,
+          0.9,
+          0.0,
+          0.9,
+          0.7,
+          0.0,
+          0.825,
+          0.8,
+          0.0,
+          0.875,
+          0.8,
+          0.0,
+
+          // N harfi
+          1.0,
+          0.7,
+          0.0,
+          1.0,
+          0.9,
+          0.0,
+          1.0,
+          0.9,
+          0.0,
+          1.1,
+          0.7,
+          0.0,
+          1.1,
+          0.7,
+          0.0,
+          1.1,
+          0.9,
+          0.0,
+          1.0,
+          0.7,
+          0.0,
+          1.1,
+          0.9,
+          0.0, // Eksik çubuk
+        ];
+
+        // Renk verileri
+        const colors = [
+          // E harfi renkleri
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+
+          // R harfi renkleri
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+
+          // C harfi renkleri
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+
+          // A harfi renkleri
+          1.0,
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0,
+
+          // N harfi renkleri
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+
+          // Boşluk
+
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+
+          // T harfi renkleri
+          0.0,
+          1.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          1.0,
+
+          // U harfi renkleri
+          0.5,
+          0.5,
+          0.5,
+          1.0,
+          0.5,
+          0.5,
+          0.5,
+          1.0,
+          0.5,
+          0.5,
+          0.5,
+          1.0,
+          0.5,
+          0.5,
+          0.5,
+          1.0,
+          0.5,
+          0.5,
+          0.5,
+          1.0,
+          0.5,
+          0.5,
+          0.5,
+          1.0,
+
+          // R harfi renkleri
+          1.0,
+          0.0,
+          0.5,
+          1.0,
+          1.0,
+          0.0,
+          0.5,
+          1.0,
+          1.0,
+          0.0,
+          0.5,
+          1.0,
+          1.0,
+          0.0,
+          0.5,
+          1.0,
+          1.0,
+          0.0,
+          0.5,
+          1.0,
+          1.0,
+          0.0,
+          0.5,
+          1.0,
+          1.0,
+          0.0,
+          0.5,
+          1.0,
+
+          // A harfi renkleri
+          0.5,
+          0.0,
+          1.0,
+          1.0,
+          0.5,
+          0.0,
+          1.0,
+          1.0,
+          0.5,
+          0.0,
+          1.0,
+          1.0,
+          0.5,
+          0.0,
+          1.0,
+          1.0,
+          0.5,
+          0.0,
+          1.0,
+          1.0,
+          0.5,
+          0.0,
+          1.0,
+          1.0,
+
+          // N harfi renkleri
+          1.0,
+          0.5,
+          0.0,
+          1.0,
+          1.0,
+          0.5,
+          0.0,
+          1.0,
+          1.0,
+          0.5,
+          0.0,
+          1.0,
+          1.0,
+          0.5,
+          0.0,
+          1.0,
+          1.0,
+          0.5,
+          0.0,
+          1.0,
+          1.0,
+          0.5,
+          0.0,
+          1.0,
+          1.0,
+          0.5,
+          0.0,
+          1.0, // Eksik çubuk
+        ];
+
+        // Pozisyon buffer'ı oluşturma ve verileri yükleme
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(
+          gl.ARRAY_BUFFER,
+          new Float32Array(positions),
+          gl.STATIC_DRAW
+        );
+        // Renk buffer'ı oluşturma ve verileri yükleme
+        const colorBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.bufferData(
+          gl.ARRAY_BUFFER,
+          new Float32Array(colors),
+          gl.STATIC_DRAW
+        );
+
+        return {
+          position: positionBuffer,
+          color: colorBuffer,
+        };
+      }
+      // Sahneyi çizme fonksiyonu
+      function drawScene(gl, programInfo, buffers) {
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clearDepth(1.0);
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        // Perspektif matrisi ayarlama
+        const fieldOfView = (45 * Math.PI) / 180;
+        const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+        const zNear = 0.1;
+        const zFar = 100.0;
+        const projectionMatrix = mat4.create();
+        mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
+        // Model-görünüm matrisi ayarlama
+        const modelViewMatrix = mat4.create();
+        mat4.translate(modelViewMatrix, modelViewMatrix, [-0.0, 0.0, -6.0]);
+        // Pozisyon buffer'ını bağlama ve vertex attribute'u aktifleştirme
+        {
+          const numComponents = 3; // X ve Y ve Z bileşenleri
+          const type = gl.FLOAT;
+          const normalize = false;
+          const stride = 0;
+          const offset = 0;
+          gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
+          gl.vertexAttribPointer(
+            programInfo.attribLocations.vertexPosition,
+            numComponents,
+            type,
+            normalize,
+            stride,
+            offset
+          );
+          gl.enableVertexAttribArray(
+            programInfo.attribLocations.vertexPosition
+          );
+        }
+        // Renk buffer'ını bağlama ve vertex attribute'u aktifleştirme
+        {
+          const numComponents = 4; // R, G, B ve A bileşenleri
+          const type = gl.FLOAT;
+          const normalize = false;
+          const stride = 0;
+          const offset = 0;
+          gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+          gl.vertexAttribPointer(
+            programInfo.attribLocations.vertexColor,
+            numComponents,
+            type,
+            normalize,
+            stride,
+            offset
+          );
+          gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
+        }
+        // Shader programını kullanma
+        gl.useProgram(programInfo.program);
+        gl.uniformMatrix4fv(
+          programInfo.uniformLocations.projectionMatrix,
+          false,
+          projectionMatrix
+        ); // Uniformları ayarlama
+        gl.uniformMatrix4fv(
+          programInfo.uniformLocations.modelViewMatrix,
+          false,
+          modelViewMatrix
+        );
+
+        {
+          // Şekilleri çizme
+          const offset = 0;
+          const vertexCount = 66; // Toplam 66 vertex
+          gl.drawArrays(gl.LINES, offset, vertexCount); // Çizgiler olarak çizme
+        }
+      }
+
+      window.onload = main;
+    </script>
+  </body>
+</html>
